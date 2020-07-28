@@ -1,5 +1,5 @@
 import mongo from 'mongodb';
-import { Collection, Privilege, PrivilegePool, AddPrivilegePoolInput } from '../../graphql/types';
+import { Collection, Privilege, PrivilegePool } from '../../graphql/types';
 import { MongoDBConfig } from './config';
 import { AppDoc, AppUserDoc, PrivilegeDoc, PrivilegePoolDoc } from './docs';
 import {
@@ -13,7 +13,7 @@ import {
 import Storage from '../storage';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
-import { GetPrivilegePools } from './storage/privilege-pools';
+import { GetPrivilegePools, AddPrivilegePool } from './storage/privilege-pools';
 import MongoDbCache from './cache';
 
 const collectionMap = new Map<Collection, string>();
@@ -279,6 +279,7 @@ export default class MongoDbStorage implements Storage {
   }
 
   public getPrivilegePools = GetPrivilegePools;
+  public addPrivilegePool = AddPrivilegePool;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public async getAppFromPrivilegePool(privilegePoolId: string): Promise<any | null> {
@@ -447,62 +448,6 @@ export default class MongoDbStorage implements Storage {
         tags: input.tags,
       };
       await db.collection(privilegesCollection).insertOne(newDoc);
-      return newDoc;
-    } catch (error) {
-      return null;
-    } finally {
-      client?.close();
-    }
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public async addPrivilegePool(appId: string, input: AddPrivilegePoolInput): Promise<any | null> {
-    const appsCollection = collectionMap.get(Collection.apps);
-    const privilegesCollection = collectionMap.get(Collection.privileges);
-    const privilegePoolsCollection = collectionMap.get(Collection.privilegepools);
-    if (!appsCollection || !privilegePoolsCollection || !privilegesCollection) {
-      return null;
-    }
-
-    let client: mongo.MongoClient | undefined;
-    try {
-      client = await this.getClient();
-
-      const db = client.db(this.config.database);
-
-      // Get app doc
-      const appDoc: AppDoc | null = await db.collection(appsCollection).findOne({ _id: new mongo.ObjectID(appId) });
-      if (!appDoc) {
-        return null;
-      }
-
-      // Get privilege docs
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const privilegeFilter: any = [];
-      input.privilegeIds.forEach((privilegeId) => {
-        privilegeFilter.push({ _id: new mongo.ObjectID(privilegeId) });
-      });
-      const privilegeDocs: PrivilegeDoc[] = await db
-        .collection(privilegesCollection)
-        .find({ $or: privilegeFilter })
-        .toArray();
-
-      if (privilegeDocs.length === 0) {
-        return null;
-      }
-
-      const newDoc: PrivilegePoolDoc = {
-        _id: new mongo.ObjectID(),
-        // eslint-disable-next-line @typescript-eslint/camelcase
-        app_id: appDoc._id,
-        name: input.name,
-        order: Date.now().toString(),
-        short: input.short,
-        tags: input.tags,
-        // eslint-disable-next-line @typescript-eslint/camelcase
-        privilege_ids: privilegeDocs.map((privilegeDoc) => privilegeDoc._id),
-      };
-      await db.collection(privilegePoolsCollection).insertOne(newDoc);
       return newDoc;
     } catch (error) {
       return null;
