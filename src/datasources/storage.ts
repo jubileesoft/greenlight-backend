@@ -32,6 +32,8 @@ export default interface Storage {
   orderUpPrivilege(privilegeId: string): Promise<any[] | null>;
   orderDownPrivilege(privilegeId: string): Promise<any[] | null>;
   addPrivilegePool(appId: string, input: AddPrivilegePoolInput): Promise<any | null>;
+  orderUpPrivilegePool(privilegePoolId: string): Promise<any[] | null>;
+  orderDownPrivilegePool(privilegePoolId: string): Promise<any[] | null>;
 
   mapDocs(collection: Collection, docs: any[]): any[] | null;
   mapAppDoc(doc: any): App;

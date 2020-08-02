@@ -160,5 +160,21 @@ export default class GenericApi extends DataSource {
     return this.storage.mapPrivilegePoolDoc(doc);
   }
 
+  public async orderUpPrivilegePool(privilegePoolId: string): Promise<PrivilegePool[] | null> {
+    const docs = await this.storage.orderUpPrivilegePool(privilegePoolId);
+    if (!docs) {
+      return null;
+    }
+    return this.storage.mapPrivilegePoolDocs(docs);
+  }
+
+  public async orderDownPrivilegePool(privilegePoolId: string): Promise<PrivilegePool[] | null> {
+    const docs = await this.storage.orderDownPrivilegePool(privilegePoolId);
+    if (!docs) {
+      return null;
+    }
+    return this.storage.mapPrivilegePoolDocs(docs);
+  }
+
   // #endregion Public Methods
 }

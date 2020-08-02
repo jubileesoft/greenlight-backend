@@ -13,7 +13,13 @@ import {
 import Storage from '../storage';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcrypt';
-import { GetPrivilegePools, AddPrivilegePool } from './storage/privilege-pools';
+import { GetPrivileges, UpdatePrivilege } from './storage/privilege';
+import {
+  GetPrivilegePools,
+  AddPrivilegePool,
+  OrderUpPrivilegePool,
+  OrderDownPrivilegePool,
+} from './storage/privilege-pool';
 import MongoDbCache from './cache';
 
 const collectionMap = new Map<Collection, string>();
@@ -109,60 +115,8 @@ export default class MongoDbStorage implements Storage {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public async getPrivileges(appId?: string): Promise<any[] | null> {
-    const col = collectionMap.get(Collection.privileges);
-    if (!col) {
-      return null;
-    }
-
-    let client: mongo.MongoClient | undefined;
-    try {
-      client = await this.getClient();
-
-      const db = client.db(this.config.database);
-      const docs = await db
-        .collection(col)
-        // eslint-disable-next-line @typescript-eslint/camelcase
-        .find(appId ? { app_id: new mongo.ObjectID(appId) } : undefined)
-        .toArray();
-      return docs;
-    } catch (error) {
-      return null;
-    } finally {
-      client?.close();
-    }
-  }
-
-  public async updatePrivilege(privilegeId: string, input: UpdatePrivilegeInput): Promise<any | null> {
-    const col = collectionMap.get(Collection.privileges);
-    if (!col) {
-      return null;
-    }
-
-    if (Object.keys(input).length === 0) {
-      return null;
-    }
-
-    let client: mongo.MongoClient | undefined;
-    try {
-      client = await this.getClient();
-
-      const db = client.db(this.config.database);
-      // eslint-disable-next-line @typescript-eslint/camelcase
-      const filter = { _id: new mongo.ObjectID(privilegeId) };
-      const updateQuery = { $set: input };
-      await db.collection(col).updateOne(filter, updateQuery);
-
-      const privilegeDoc: PrivilegeDoc | null = await db.collection(col).findOne(filter);
-
-      return privilegeDoc;
-    } catch (error) {
-      return null;
-    } finally {
-      client?.close();
-    }
-  }
+  getPrivileges = GetPrivileges;
+  updatePrivilege = UpdatePrivilege;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public async getAppUsers(appId: string): Promise<any[] | null> {
@@ -280,6 +234,8 @@ export default class MongoDbStorage implements Storage {
 
   public getPrivilegePools = GetPrivilegePools;
   public addPrivilegePool = AddPrivilegePool;
+  public orderUpPrivilegePool = OrderUpPrivilegePool;
+  public orderDownPrivilegePool = OrderDownPrivilegePool;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public async getAppFromPrivilegePool(privilegePoolId: string): Promise<any | null> {
@@ -500,13 +456,13 @@ export default class MongoDbStorage implements Storage {
       const lowerOrder = upPrivilegeDoc.order;
       const upperOrder = privilegeDoc.order;
 
-      // Update privilege (will become lower order privilege)
+      // Update privilege: will get lower order
       const filter2 = { _id: privilegeDoc._id };
       const updateQuery2 = { $set: { order: lowerOrder } };
       await db.collection(privilegesCollection).updateOne(filter2, updateQuery2);
       privilegeDoc.order = lowerOrder;
 
-      // Update previous upper privilege (will become lower privilege)
+      // Update upPrivilege: will get upper order
       const filter3 = { _id: upPrivilegeDoc._id };
       const updateQuery3 = { $set: { order: upperOrder } };
       await db.collection(privilegesCollection).updateOne(filter3, updateQuery3);

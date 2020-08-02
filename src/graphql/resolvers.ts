@@ -53,6 +53,16 @@ interface AmselResolvers extends IResolvers {
       args: { appId: string; input: AddPrivilegePoolInput },
       context: ApolloServerContext,
     ): Promise<PrivilegePool | null>;
+    orderUpPrivilegePool(
+      notUsed: unknown,
+      args: { privilegePoolId: string },
+      context: ApolloServerContext,
+    ): Promise<PrivilegePool[] | null>;
+    orderDownPrivilegePool(
+      notUsed: unknown,
+      args: { privilegePoolId: string },
+      context: ApolloServerContext,
+    ): Promise<PrivilegePool[] | null>;
   };
 }
 
@@ -204,6 +214,22 @@ const resolvers: AmselResolvers = {
       context: ApolloServerContext,
     ): Promise<PrivilegePool | null> => {
       return context.dataSources.genericApi.addPrivilegePool(args.appId, args.input);
+    },
+
+    orderUpPrivilegePool: async (
+      _,
+      args: { privilegePoolId: string },
+      context: ApolloServerContext,
+    ): Promise<PrivilegePool[] | null> => {
+      return context.dataSources.genericApi.orderUpPrivilegePool(args.privilegePoolId);
+    },
+
+    orderDownPrivilegePool: async (
+      _,
+      args: { privilegePoolId: string },
+      context: ApolloServerContext,
+    ): Promise<PrivilegePool[] | null> => {
+      return context.dataSources.genericApi.orderDownPrivilegePool(args.privilegePoolId);
     },
   },
   // Scalars

@@ -25,6 +25,8 @@ const typeDefs = gql`
 
   extend type Mutation {
     addPrivilegePool(appId: String!, input: AddPrivilegePoolInput!): PrivilegePool
+    orderUpPrivilegePool(privilegePoolId: String!): [PrivilegePool]
+    orderDownPrivilegePool(privilegePoolId: String!): [PrivilegePool]
   }
 `;
 
