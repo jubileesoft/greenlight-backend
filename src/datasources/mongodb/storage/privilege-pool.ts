@@ -7,6 +7,31 @@ const Query = {
   GET_PRIVILEGE_POOLS: 'getPrivilegePools',
 };
 
+// #region map functions
+
+function mapPrivilegePoolDocToGql(doc: PrivilegePoolDoc): PrivilegePool {
+  return {
+    id: doc._id.toString(),
+    name: doc.name,
+    order: doc.order,
+    short: doc.short,
+    tags: doc.tags,
+  };
+}
+
+export function MapPrivilegePoolDoc(this: MongoDbStorage, doc: PrivilegePoolDoc): PrivilegePool {
+  return mapPrivilegePoolDocToGql(doc);
+}
+
+export function MapPrivilegePoolDocs(this: MongoDbStorage, docs: PrivilegePoolDoc[]): PrivilegePool[] {
+  const privilegePools: PrivilegePool[] = docs.map((doc) => {
+    return mapPrivilegePoolDocToGql(doc);
+  });
+  return privilegePools;
+}
+
+// #endregion map functions
+
 // #region GetPrivilegePools
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -253,3 +278,50 @@ export async function OrderDownPrivilegePool(this: MongoDbStorage, privilegePool
 }
 
 // #endregion OrderDownPrivilegePool
+
+// #region GetAppFromPrivilegePool
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function GetAppFromPrivilegePool(this: MongoDbStorage, privilegePoolId: string): Promise<any | null> {
+  const privilegePoolDoc: PrivilegePoolDoc = await this.getDocument(Collection.privilegepools, {
+    _id: new mongo.ObjectID(privilegePoolId),
+  });
+  if (!privilegePoolDoc) {
+    return null;
+  }
+
+  return this.getDocument(Collection.apps, { _id: privilegePoolDoc.app_id });
+}
+
+// #endregion GetAppFromPrivilegePool
+
+// #region GetPrivilegesFromPrivilegePool
+
+export async function GetPrivilegesFromPrivilegePool(
+  this: MongoDbStorage,
+  privilegePoolId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any[] | null> {
+  const privilegePoolDoc: PrivilegePoolDoc = await this.getDocument(Collection.privilegepools, {
+    _id: new mongo.ObjectID(privilegePoolId),
+  });
+  if (!privilegePoolDoc) {
+    return null;
+  }
+
+  if (!privilegePoolDoc.privilege_ids) {
+    return [];
+  }
+
+  // Build Filter
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const filterArray: any[] = [];
+  privilegePoolDoc.privilege_ids.forEach((_id) => {
+    filterArray.push({
+      _id: _id,
+    });
+  });
+  return this.getDocuments(Collection.privileges, { $or: filterArray });
+}
+
+// #endregion GetPrivilegesFromPrivilegePool
