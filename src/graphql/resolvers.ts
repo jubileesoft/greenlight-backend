@@ -9,8 +9,9 @@ import {
   AddPrivilegeInput,
   UpdatePrivilegeInput,
   AddPrivilegePoolInput,
+  UserRoleType,
 } from './types';
-import { App, AppUser, Privilege, PrivilegePool } from './types';
+import { User, App, AppUser, Privilege, PrivilegePool } from './types';
 import ISODate from './scalars/ISODate';
 
 export interface ApolloServerContext {
@@ -75,6 +76,19 @@ const ensureIsAuthenticated = (context: ApolloServerContext): void => {
 
 const resolvers: AmselResolvers = {
   Query: {
+    getMe: async (_, ___, context: ApolloServerContext): Promise<User | null> => {
+      console.log(context.user);
+      const user: User = {
+        id: 'abcdefg',
+        email: 'christian.ellerbrock@umlaut.com',
+        roles: [
+          {
+            type: UserRoleType.ADMIN,
+          },
+        ],
+      };
+      return user;
+    },
     getApps: async (_, ___, context: ApolloServerContext): Promise<App[] | null> => {
       ensureIsAuthenticated(context);
       const apps: App[] | null = await context.dataSources.genericApi.getCollection(Collection.apps);

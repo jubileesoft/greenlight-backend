@@ -1,6 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { gql } = require('apollo-server-express');
 
+import userTypeDefs from './schema/user';
 import appTypeDefs from './schema/app';
 import objectPoolTypeDefs from './schema/object-pool';
 import objectTypeDefs from './schema/object';
@@ -22,6 +23,7 @@ const root = gql`
 
 const typeDefs = [
   root,
+  userTypeDefs,
   appTypeDefs,
   objectPoolTypeDefs,
   objectTypeDefs,

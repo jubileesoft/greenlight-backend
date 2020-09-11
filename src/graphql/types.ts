@@ -5,6 +5,23 @@ export enum Collection {
   privilegepools,
 }
 
+export enum UserRoleType {
+  ADMIN = 'ADMIN',
+  TENANT_ADMIN = 'TENANT_ADMIN',
+  APP_ADMIN = 'APP_ADMIN',
+}
+
+export interface UserRole {
+  type: UserRoleType;
+  ids?: string[];
+}
+
+export interface User {
+  id: string;
+  email: string;
+  roles: UserRole[];
+}
+
 export interface AppUser {
   id: string;
   app?: App;
