@@ -10,9 +10,12 @@ import {
   PrivilegePool,
   AddPrivilegePoolInput,
   UpdatePrivilegeInput,
+  User,
 } from '../graphql/types';
 
 export default interface Storage {
+  getMe(email: string): Promise<User | null>;
+
   getDocuments(collection: Collection, filter?: any): Promise<any[] | null>;
   deleteDocument(collection: Collection, id: string): Promise<boolean>;
   getDocument(collection: Collection, filter: any): Promise<any | null>;
@@ -35,6 +38,8 @@ export default interface Storage {
   orderUpPrivilegePool(privilegePoolId: string): Promise<any[] | null>;
   orderDownPrivilegePool(privilegePoolId: string): Promise<any[] | null>;
 
+  mapUserDoc(doc: any): User;
+  mapUserDocs(docs: any[]): User[];
   mapDocs(collection: Collection, docs: any[]): any[] | null;
   mapAppDoc(doc: any): App;
   mapAppDocs(docs: any[]): App[];

@@ -1,5 +1,11 @@
 import mongo from 'mongodb';
 
+export interface UserDoc {
+  _id: mongo.ObjectID;
+  email: string;
+  roles: string[];
+}
+
 export interface AppDoc {
   _id: mongo.ObjectID;
   owner: string;

@@ -12,6 +12,7 @@ import {
   AddPrivilegePoolInput,
   PrivilegePool,
   UpdatePrivilegeInput,
+  User,
 } from '../graphql/types';
 
 export default class GenericApi extends DataSource {
@@ -29,6 +30,14 @@ export default class GenericApi extends DataSource {
   }
 
   // #region Public Methods
+
+  public async getMe(email: string): Promise<User | null> {
+    const me = await this.storage.getMe(email);
+    if (!me) {
+      return null;
+    }
+    return this.storage.mapUserDoc(me);
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public async getCollection(collection: Collection, filter?: any): Promise<any[] | null> {

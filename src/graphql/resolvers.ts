@@ -10,6 +10,7 @@ import {
   UpdatePrivilegeInput,
   AddPrivilegePoolInput,
   UserRoleType,
+  UserRole,
 } from './types';
 import { User, App, AppUser, Privilege, PrivilegePool } from './types';
 import ISODate from './scalars/ISODate';
@@ -68,8 +69,27 @@ interface AmselResolvers extends IResolvers {
 }
 
 const ensureIsAuthenticated = (context: ApolloServerContext): void => {
-  return;
   if (!context.user) {
+    throw new AuthenticationError('Unauthenticated.');
+  }
+};
+
+const ensureIsAuthenticatedAndAuthorized = async (context: ApolloServerContext): Promise<void> => {
+  ensureIsAuthenticated(context);
+
+  if (context.user.email === process.env.ADMIN?.toLowerCase()) {
+    // GLOBAL ADMIN
+    return;
+  }
+
+  const users: User[] | null = await context.dataSources.genericApi.getCollection(Collection.users);
+  if (!users) {
+    throw new AuthenticationError('Unauthenticated.');
+  }
+
+  const authorizedUser: User | undefined = users.find((x) => x.email === context.user.email?.toLocaleLowerCase());
+
+  if (!authorizedUser) {
     throw new AuthenticationError('Unauthenticated.');
   }
 };
@@ -77,17 +97,10 @@ const ensureIsAuthenticated = (context: ApolloServerContext): void => {
 const resolvers: AmselResolvers = {
   Query: {
     getMe: async (_, ___, context: ApolloServerContext): Promise<User | null> => {
-      console.log(context.user);
-      const user: User = {
-        id: 'abcdefg',
-        email: 'christian.ellerbrock@umlaut.com',
-        roles: [
-          {
-            type: UserRoleType.ADMIN,
-          },
-        ],
-      };
-      return user;
+      await ensureIsAuthenticatedAndAuthorized(context);
+
+      const me: User | null = await context.dataSources.genericApi.getMe(context.user.email as string);
+      return me;
     },
     getApps: async (_, ___, context: ApolloServerContext): Promise<App[] | null> => {
       ensureIsAuthenticated(context);

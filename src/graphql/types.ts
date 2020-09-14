@@ -1,4 +1,5 @@
 export enum Collection {
+  users,
   appusers,
   apps,
   privileges,

@@ -3,6 +3,8 @@ import { Collection } from '../../graphql/types';
 import { MongoDBConfig } from './config';
 import Storage from '../storage';
 
+import { MapUserDoc, MapUserDocs, GetMe } from './storage/user';
+
 import {
   MapAppDoc,
   MapAppDocs,
@@ -41,11 +43,16 @@ collectionMap.set(Collection.apps, 'apps');
 collectionMap.set(Collection.appusers, 'appusers');
 collectionMap.set(Collection.privileges, 'privileges');
 collectionMap.set(Collection.privilegepools, 'privilegepools');
+collectionMap.set(Collection.users, 'users');
 
 export default class MongoDbStorage implements Storage {
   public config = MongoDBConfig;
   public collectionMap = collectionMap;
   public static cache = new MongoDbCache();
+
+  public mapUserDoc = MapUserDoc;
+  public mapUserDocs = MapUserDocs;
+  public getMe = GetMe;
 
   mapAppDoc = MapAppDoc;
   mapAppDocs = MapAppDocs;
@@ -89,6 +96,9 @@ export default class MongoDbStorage implements Storage {
 
       case Collection.privilegepools:
         return this.mapPrivilegePoolDocs(docs);
+
+      case Collection.users:
+        return this.mapUserDocs(docs);
 
       default:
         return null;

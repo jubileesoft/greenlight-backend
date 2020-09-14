@@ -1,7 +1,7 @@
 import _ from 'lodash';
 
 interface Query {
-  [name: string]: WeakMap<object, object[]>;
+  [name: string]: WeakMap<object, object[] | null>;
 }
 
 export default class MongoDbCache {
@@ -21,7 +21,7 @@ export default class MongoDbCache {
     }
   }
 
-  public getQueryResult(query: string, filter: object): object[] | undefined {
+  public getQueryResult(query: string, filter: object): object[] | null | undefined {
     const map = this.query[query];
 
     if (!map) {
@@ -34,9 +34,11 @@ export default class MongoDbCache {
       console.log(`Cache hit for "${query}" ` + JSON.stringify(filter));
       return map.get(persistedFilter);
     }
+
+    return undefined;
   }
 
-  public setQueryResult(query: string, filter: object, result: object[]): void {
+  public setQueryResult(query: string, filter: object, result: object[] | null): void {
     let weakMap = this.query[query];
 
     if (!weakMap) {

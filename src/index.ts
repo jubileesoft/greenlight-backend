@@ -1,6 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { ApolloServer } = require('apollo-server-express');
-//import amsel, { MicrosoftConfig } from '@jubileesoft/amsel';
+import amsel, { MicrosoftConfig, GoogleConfig } from '@jubileesoft/amsel';
 import express from 'express';
 
 import routes from './routes';
@@ -29,10 +29,16 @@ app.get('/', function (req, res) {
 
 // #region GRAPHQL
 
-// const amselConfig: GoogleConfig = {
-//   appClientId: '',
-// };
-// amsel.initializeGoogle(amselConfig);
+const googleConfig: GoogleConfig = {
+  appClientId: process.env.GOOGLE_API_KEY as string,
+};
+amsel.initializeGoogle(googleConfig);
+
+const microsoftConfig: MicrosoftConfig = {
+  appId: process.env.MICROSOFT_CLIENT_ID as string,
+  tenantId: process.env.MICROSOFT_TENANT_ID as string,
+};
+amsel.initializeMicrosoft(microsoftConfig);
 
 const server = new ApolloServer({
   playground: true,
@@ -41,15 +47,22 @@ const server = new ApolloServer({
   engine: {
     apiKey: process.env.APOLLOSERVER_ENGINE_APIKEY,
   },
-  // context: async (input): Promise<object> => {
-  //   const notAuthenticated = { user: null };
-  //   try {
-  //     const user = await amsel.verifyAccessTokenFromGoogle(input.req.headers.authorization);
-  //     return { user };
-  //   } catch (e) {
-  //     return notAuthenticated;
-  //   }
-  // },
+  context: async (input: any): Promise<object> => {
+    const notAuthenticated = { user: null };
+    try {
+      let user = null;
+
+      if (input.req.headers.xauthprovider === 'google') {
+        user = await amsel.verifyAccessTokenFromGoogle(input.req.headers.authorization);
+      } else {
+        user = await amsel.verifyAccessTokenFromMicrosoft(input.req.headers.authorization);
+      }
+
+      return { user };
+    } catch (e) {
+      return notAuthenticated;
+    }
+  },
   dataSources: (): object => {
     return { genericApi: new GenericApi(new MongoDbStorage()) };
   },
