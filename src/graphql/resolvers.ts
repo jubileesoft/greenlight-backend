@@ -11,9 +11,11 @@ import {
   AddPrivilegePoolInput,
   UserRoleType,
   UserRole,
+  Tenant,
 } from './types';
 import { User, App, AppUser, Privilege, PrivilegePool } from './types';
 import ISODate from './scalars/ISODate';
+import { JFilter } from 'src/index.dt';
 
 export interface ApolloServerContext {
   user: MicrosoftUser;
@@ -21,6 +23,9 @@ export interface ApolloServerContext {
 }
 
 interface AmselResolvers extends IResolvers {
+  // Query: {
+  //   getMe(notUsed1: unknown, notUsed2: unknown, context: ApolloServerContext): Promise<User | null>;
+  // };
   Mutation: {
     addApp(notUsed: unknown, args: { input: AddAppInput }, context: ApolloServerContext): Promise<App | null>;
     createAppApiKey1(notUsed: unknown, args: { appId: string }, context: ApolloServerContext): Promise<string | null>;
@@ -74,13 +79,15 @@ const ensureIsAuthenticated = (context: ApolloServerContext): void => {
   }
 };
 
-const ensureIsAuthenticatedAndAuthorized = async (context: ApolloServerContext): Promise<void> => {
+const ensureIsAuthenticatedAndAuthorized = async (context: ApolloServerContext): Promise<UserRole[]> => {
   ensureIsAuthenticated(context);
 
-  if (context.user.email === process.env.ADMIN?.toLowerCase()) {
-    // GLOBAL ADMIN
-    return;
-  }
+  //const adminEmails = process.env.ADMINS?.toLowerCase().split(',');
+
+  // if (adminEmails?.includes(context.user.email as string)) {
+  //   // GLOBAL ADMIN
+  //   return;
+  // }
 
   const users: User[] | null = await context.dataSources.genericApi.getCollection(Collection.users);
   if (!users) {
@@ -92,6 +99,8 @@ const ensureIsAuthenticatedAndAuthorized = async (context: ApolloServerContext):
   if (!authorizedUser) {
     throw new AuthenticationError('Unauthenticated.');
   }
+
+  return authorizedUser.roles;
 };
 
 const resolvers: AmselResolvers = {
@@ -101,6 +110,31 @@ const resolvers: AmselResolvers = {
 
       const me: User | null = await context.dataSources.genericApi.getMe(context.user.email as string);
       return me;
+    },
+    getTenants: async (_, __, context: ApolloServerContext): Promise<Tenant[] | null> => {
+      const roles: UserRole[] = await ensureIsAuthenticatedAndAuthorized(context);
+
+      let jfilter: JFilter | undefined;
+
+      const admin = roles.find((x) => x.type === UserRoleType.ADMIN);
+      if (!admin) {
+        // If the user is not a global ADMIN, check to what tenants the user has access to.
+        const tenantAdmin = roles.find((x) => x.type === UserRoleType.TENANT_ADMIN);
+        if (tenantAdmin) {
+          jfilter = {
+            or: {
+              property: 'id',
+              values: tenantAdmin.ids as string[],
+            },
+          };
+        } else {
+          // An APP_ADMIN is not allowed to load tenants here
+          return null;
+        }
+      }
+
+      const tenants: Tenant[] | null = await context.dataSources.genericApi.getCollection(Collection.tenants, jfilter);
+      return tenants;
     },
     getApps: async (_, ___, context: ApolloServerContext): Promise<App[] | null> => {
       ensureIsAuthenticated(context);
@@ -123,7 +157,11 @@ const resolvers: AmselResolvers = {
       });
     },
     getApp: async (_, args: { id: string }, context: ApolloServerContext): Promise<App | null> => {
-      const apps: App[] | null = await context.dataSources.genericApi.getCollection(Collection.apps, { id: args.id });
+      const jfilter: JFilter = {
+        id: args.id,
+      };
+
+      const apps: App[] | null = await context.dataSources.genericApi.getCollection(Collection.apps, jfilter);
       if (apps == null || apps.length === 0) {
         return null;
       }

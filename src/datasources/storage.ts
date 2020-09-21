@@ -1,3 +1,4 @@
+import { JFilter } from 'src/index.dt';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   Collection,
@@ -16,7 +17,7 @@ import {
 export default interface Storage {
   getMe(email: string): Promise<User | null>;
 
-  getDocuments(collection: Collection, filter?: any): Promise<any[] | null>;
+  getDocuments(collection: Collection, filter?: JFilter): Promise<any[] | null>;
   deleteDocument(collection: Collection, id: string): Promise<boolean>;
   getDocument(collection: Collection, filter: any): Promise<any | null>;
   getPrivileges(appId?: string): Promise<any[] | null>;

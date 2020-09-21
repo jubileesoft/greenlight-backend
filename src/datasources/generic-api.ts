@@ -14,6 +14,7 @@ import {
   UpdatePrivilegeInput,
   User,
 } from '../graphql/types';
+import { JFilter } from 'src/index.dt';
 
 export default class GenericApi extends DataSource {
   public context!: { user: MicrosoftUser };
@@ -40,8 +41,8 @@ export default class GenericApi extends DataSource {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public async getCollection(collection: Collection, filter?: any): Promise<any[] | null> {
-    const docs = await this.storage.getDocuments(collection, filter);
+  public async getCollection(collection: Collection, jfilter?: JFilter): Promise<any[] | null> {
+    const docs = await this.storage.getDocuments(collection, jfilter);
     if (!docs) {
       return null;
     }

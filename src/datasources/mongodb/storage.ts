@@ -37,6 +37,7 @@ import {
   GetPrivilegesFromPrivilegePool,
 } from './storage/privilege-pool';
 import MongoDbCache from './cache';
+import { JFilter } from 'src/index.dt';
 
 const collectionMap = new Map<Collection, string>();
 collectionMap.set(Collection.apps, 'apps');
@@ -44,6 +45,7 @@ collectionMap.set(Collection.appusers, 'appusers');
 collectionMap.set(Collection.privileges, 'privileges');
 collectionMap.set(Collection.privilegepools, 'privilegepools');
 collectionMap.set(Collection.users, 'users');
+collectionMap.set(Collection.tenants, 'tenants');
 
 export default class MongoDbStorage implements Storage {
   public config = MongoDBConfig;
@@ -108,7 +110,7 @@ export default class MongoDbStorage implements Storage {
   // #region Helper
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public async getDocuments(collection: Collection, filter?: any): Promise<any[] | null> {
+  public async getDocuments(collection: Collection, jfilter?: JFilter): Promise<any[] | null> {
     const col = collectionMap.get(collection);
     if (!col) {
       return null;
@@ -120,16 +122,11 @@ export default class MongoDbStorage implements Storage {
 
       const db = client.db(this.config.database);
 
-      let transformedFilter = null;
-      if (filter && typeof filter.id !== 'undefined') {
-        transformedFilter = filter;
-        transformedFilter._id = new mongo.ObjectID(filter.id);
-        delete transformedFilter.id;
-      }
+      const filter = this.getFilterFromJFilter(jfilter);
 
       const docs = await db
         .collection(col)
-        .find(transformedFilter ?? {})
+        .find(filter ?? {})
         .toArray();
 
       return docs;
@@ -191,6 +188,46 @@ export default class MongoDbStorage implements Storage {
     return mongo.MongoClient.connect(this.config.url, {
       useUnifiedTopology: true,
     });
+  }
+
+  private getFilterFromJFilter(jfilter?: JFilter): object | null {
+    if (!jfilter) {
+      return null;
+    }
+
+    const filter: { [k: string]: any } = {};
+
+    for (const property in jfilter) {
+      if (property === 'or') {
+        continue;
+      }
+
+      if (property === 'id') {
+        filter._id = new mongo.ObjectID(jfilter.id);
+      } else {
+        filter[property] = jfilter[property];
+      }
+    }
+
+    if (jfilter.or) {
+      const or: any[] = [];
+      jfilter.or.values.forEach((value) => {
+        const newOrObject: { [k: string]: any } = {};
+
+        if (jfilter.or?.property === 'id') {
+          // Special treatment of the property "id"
+          newOrObject['_id'] = new mongo.ObjectID(value as string);
+        } else {
+          newOrObject[jfilter.or?.property as string] = value;
+        }
+
+        or.push(newOrObject);
+      });
+
+      filter['$or'] = or;
+    }
+
+    return filter;
   }
 
   // #endregion Helper

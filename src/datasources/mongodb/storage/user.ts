@@ -84,14 +84,14 @@ export async function GetMe(this: MongoDbStorage, email: string): Promise<any | 
     client = await this.getClient();
 
     const db = client.db(this.config.database);
-    let doc: UserDoc | null = await db.collection(usersCollection).findOne({ email: email.toLocaleLowerCase() });
+    let doc: UserDoc | null = await db.collection(usersCollection).findOne({ email: email.toLowerCase() });
 
-    // Check if the user is the GLOBAL ADMIN. If so, create a new entry when nothing is available.
+    // Check if the user is one of the GLOBAL ADMINS. If so, create a new entry when nothing is available.
     if (!doc) {
-      if (email.toLocaleLowerCase() === process.env.ADMIN?.toLocaleLowerCase()) {
+      if (process.env.ADMINS?.toLowerCase().split(',').includes(email.toLowerCase())) {
         doc = {
           _id: new mongo.ObjectID(),
-          email: email.toLocaleLowerCase(),
+          email: email.toLowerCase(),
           roles: [UserRoleType.ADMIN],
         };
 

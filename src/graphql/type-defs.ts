@@ -2,6 +2,7 @@
 const { gql } = require('apollo-server-express');
 
 import userTypeDefs from './schema/user';
+import tenantTypeDefs from './schema/tenant';
 import appTypeDefs from './schema/app';
 import objectPoolTypeDefs from './schema/object-pool';
 import objectTypeDefs from './schema/object';
@@ -24,6 +25,7 @@ const root = gql`
 const typeDefs = [
   root,
   userTypeDefs,
+  tenantTypeDefs,
   appTypeDefs,
   objectPoolTypeDefs,
   objectTypeDefs,

@@ -1,5 +1,6 @@
 export enum Collection {
   users,
+  tenants,
   appusers,
   apps,
   privileges,
@@ -21,6 +22,11 @@ export interface User {
   id: string;
   email: string;
   roles: UserRole[];
+}
+
+export interface Tenant {
+  id: string;
+  name: string;
 }
 
 export interface AppUser {

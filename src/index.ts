@@ -52,6 +52,10 @@ const server = new ApolloServer({
     try {
       let user = null;
 
+      if (typeof input.req.headers.xauthprovider === 'undefined') {
+        return notAuthenticated;
+      }
+
       if (input.req.headers.xauthprovider === 'google') {
         user = await amsel.verifyAccessTokenFromGoogle(input.req.headers.authorization);
       } else {
@@ -60,6 +64,7 @@ const server = new ApolloServer({
 
       return { user };
     } catch (e) {
+      console.log(e);
       return notAuthenticated;
     }
   },
