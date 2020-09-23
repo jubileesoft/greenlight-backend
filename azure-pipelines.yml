@@ -1,0 +1,14 @@
+trigger:
+  - develop
+  - master
+  - alpha
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  - task: Yarn@3
+    displayName: 'Install Packages'
+
+  - script: 'yarn run build'
+    displayName: 'Build'
