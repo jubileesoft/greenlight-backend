@@ -23,3 +23,10 @@ steps:
   #     command: build
   #     Dockerfile: Dockerfile
 
+- task: Docker@2
+  displayName: 'Build and push docker image'
+  inputs:
+    containerRegistry: 'glp-docker-registry-connect'
+    repository: 'pipelines-greenlightbackend-docker'
+    command: 'buildAndPush'
+    Dockerfile: '**/Dockerfile'
