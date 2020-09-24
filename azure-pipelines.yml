@@ -17,8 +17,8 @@ steps:
     displayName: 'Build'
 
   - task: Docker@2
-  displayName: Build an image
-  inputs:
-    repository: $(imageName)
-    command: build
-    Dockerfile: Dockerfile
+    displayName: 'Build an image'
+    inputs:
+      repository: $(imageName)
+      command: build
+      Dockerfile: Dockerfile
