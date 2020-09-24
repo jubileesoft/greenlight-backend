@@ -30,3 +30,4 @@ steps:
     repository: 'pipelines-greenlightbackend-docker'
     command: 'buildAndPush'
     Dockerfile: '**/Dockerfile'
+    tags: 'latest'
