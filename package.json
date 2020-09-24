@@ -16,7 +16,7 @@
   "keywords": [],
   "repository": "github:jubileesoft/greenlight-backend",
   "author": "Christian Ellerbrock",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "description": "",
   "dependencies": {
     "@jubileesoft/amsel": "^0.2.0",
