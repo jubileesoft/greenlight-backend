@@ -10,15 +10,16 @@ variables:
   imageName: 'pipelines-greenlightbackend-docker'
 
 steps:
-  - task: Yarn@3
-    displayName: 'Install Packages'
+  # - task: Yarn@3
+  #   displayName: 'Install Packages'
 
-  - script: 'yarn run build'
-    displayName: 'Build'
+  # - script: 'yarn run build'
+  #   displayName: 'Build'
 
-  - task: Docker@2
-    displayName: 'Build an image'
-    inputs:
-      repository: $(imageName)
-      command: build
-      Dockerfile: Dockerfile
+  # - task: Docker@2
+  #   displayName: 'Build an image'
+  #   inputs:
+  #     repository: $(imageName)
+  #     command: build
+  #     Dockerfile: Dockerfile
+
