@@ -16,6 +16,7 @@ import {
 
 export default interface Storage {
   getMe(email: string): Promise<User | null>;
+  createAdminUsers(): Promise<void>;
 
   getDocuments(collection: Collection, filter?: JFilter): Promise<any[] | null>;
   deleteDocument(collection: Collection, id: string): Promise<boolean>;

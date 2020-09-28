@@ -1,10 +1,10 @@
 export enum Collection {
-  users,
-  tenants,
-  appusers,
-  apps,
-  privileges,
-  privilegepools,
+  users = 'users',
+  tenants = 'tenants',
+  appusers = 'appusers',
+  apps = 'apps',
+  privileges = 'priovileges',
+  privilegepools = 'privilegepools',
 }
 
 export enum UserRoleType {

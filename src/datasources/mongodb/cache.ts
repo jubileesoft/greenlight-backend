@@ -8,16 +8,23 @@ export default class MongoDbCache {
   public query: Query = {};
   private persistedFilters: object[] = [];
 
-  public purgeQueryResult(query: string, filter: object): void {
+  public purgeQueryResult(query: string, filter?: object): void {
     const map = this.query[query];
     if (!map) {
       return;
     }
 
-    const persistedFilter = this.getPersistedFilter(filter);
-    if (map.has(persistedFilter)) {
-      console.log(`Purge cache for "${query}" ` + JSON.stringify(filter));
-      map.delete(persistedFilter);
+    if (filter) {
+      // purge SPECIFIC filter results
+      const persistedFilter = this.getPersistedFilter(filter);
+      if (map.has(persistedFilter)) {
+        console.log(`Purge cache for "${query}" ` + JSON.stringify(filter));
+        map.delete(persistedFilter);
+      }
+    } else {
+      // purge ALL filter results
+      console.log(`Purge cache for "${query}`);
+      this.query[query] = new WeakMap();
     }
   }
 

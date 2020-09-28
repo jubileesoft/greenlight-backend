@@ -40,6 +40,10 @@ export default class GenericApi extends DataSource {
     return this.storage.mapUserDoc(me);
   }
 
+  public async createAdminUsers(): Promise<void> {
+    return this.storage.createAdminUsers();
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public async getCollection(collection: Collection, jfilter?: JFilter): Promise<any[] | null> {
     const docs = await this.storage.getDocuments(collection, jfilter);

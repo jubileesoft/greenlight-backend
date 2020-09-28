@@ -4,6 +4,7 @@ import MongoDbStorage from '../storage';
 import mongo from 'mongodb';
 import { Collection, UserRoleType, User, UserRole } from '../../../graphql/types';
 import { UserDoc } from '../docs';
+import { Query as StorageQuery } from '../storage';
 
 const Query = {
   GET_ME: 'getMe',
@@ -84,22 +85,11 @@ export async function GetMe(this: MongoDbStorage, email: string): Promise<any | 
     client = await this.getClient();
 
     const db = client.db(this.config.database);
-    let doc: UserDoc | null = await db.collection(usersCollection).findOne({ email: email.toLowerCase() });
+    const doc: UserDoc | null = await db.collection(usersCollection).findOne({ email: email.toLowerCase() });
 
     // Check if the user is one of the GLOBAL ADMINS. If so, create a new entry when nothing is available.
     if (!doc) {
-      if (process.env.ADMINS?.toLowerCase().split(',').includes(email.toLowerCase())) {
-        doc = {
-          _id: new mongo.ObjectID(),
-          email: email.toLowerCase(),
-          roles: [UserRoleType.ADMIN],
-        };
-
-        await db.collection(usersCollection).insertOne(doc);
-        MongoDbStorage.cache.setQueryResult(query, { email }, [doc]);
-      } else {
-        MongoDbStorage.cache.setQueryResult(query, { email }, null);
-      }
+      MongoDbStorage.cache.setQueryResult(query, { email }, null);
     } else {
       MongoDbStorage.cache.setQueryResult(query, { email }, [doc]);
     }
@@ -109,6 +99,66 @@ export async function GetMe(this: MongoDbStorage, email: string): Promise<any | 
     return null;
   } finally {
     client?.close();
+  }
+}
+
+export async function CreateAdminUsers(this: MongoDbStorage): Promise<void> {
+  const admins = process.env.ADMINS?.toLowerCase().split(',');
+  if (!admins) {
+    // This is bad. At least 1 admin user should be defined.
+    throw new Error('Cannot create admin users (no admin users defined).');
+  }
+
+  const usersCollection = this.collectionMap.get(Collection.users);
+  if (!usersCollection) {
+    throw new Error('Cannot create admin users (internal collection error).');
+  }
+
+  const users: User[] | null = await this.getDocuments(Collection.users);
+  if (users == null) {
+    // This is bad and will most likely prevent us from creating the
+    // admin users in the database.
+    throw new Error(
+      `There was a problem retrieving the users from the database > Aborting the creation of admin users.`,
+    );
+  }
+
+  const newAdminUserDocs: UserDoc[] = [];
+
+  let client: mongo.MongoClient | undefined;
+  let db: mongo.Db | undefined;
+  try {
+    for (const admin of admins) {
+      if (
+        !users.find((x) => {
+          return x.email.toLowerCase() === admin.toLowerCase();
+        })
+      ) {
+        if (!client || !db) {
+          client = await this.getClient();
+          db = client.db(this.config.database);
+        }
+
+        const newAdminUserDoc: UserDoc = {
+          _id: new mongo.ObjectID(),
+          email: admin.toLowerCase(),
+          roles: [UserRoleType.ADMIN],
+        };
+
+        await db.collection(usersCollection).insertOne(newAdminUserDoc);
+        newAdminUserDocs.push(newAdminUserDoc);
+      }
+    }
+  } catch (error) {
+    throw new Error(
+      `There was a problem creating the admin users in the database > Aborting the creation of admin users.`,
+    );
+  } finally {
+    client?.close();
+  }
+
+  if (newAdminUserDocs.length > 0) {
+    MongoDbStorage.cache.purgeQueryResult(StorageQuery.GET_COLLECTION_USERS);
   }
 }
 

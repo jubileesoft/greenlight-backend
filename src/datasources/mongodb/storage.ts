@@ -3,7 +3,7 @@ import { Collection } from '../../graphql/types';
 import { MongoDBConfig } from './config';
 import Storage from '../storage';
 
-import { MapUserDoc, MapUserDocs, GetMe } from './storage/user';
+import { MapUserDoc, MapUserDocs, GetMe, CreateAdminUsers } from './storage/user';
 
 import {
   MapAppDoc,
@@ -47,6 +47,10 @@ collectionMap.set(Collection.privilegepools, 'privilegepools');
 collectionMap.set(Collection.users, 'users');
 collectionMap.set(Collection.tenants, 'tenants');
 
+export const Query = {
+  GET_COLLECTION_USERS: Collection.users.toString(),
+};
+
 export default class MongoDbStorage implements Storage {
   public config = MongoDBConfig;
   public collectionMap = collectionMap;
@@ -55,6 +59,7 @@ export default class MongoDbStorage implements Storage {
   public mapUserDoc = MapUserDoc;
   public mapUserDocs = MapUserDocs;
   public getMe = GetMe;
+  public createAdminUsers = CreateAdminUsers;
 
   mapAppDoc = MapAppDoc;
   mapAppDocs = MapAppDocs;
@@ -111,6 +116,13 @@ export default class MongoDbStorage implements Storage {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public async getDocuments(collection: Collection, jfilter?: JFilter): Promise<any[] | null> {
+    const query = collection.toString();
+
+    const cachedData = MongoDbStorage.cache.getQueryResult(query, jfilter ?? { all: true });
+    if (cachedData) {
+      return cachedData;
+    }
+
     const col = collectionMap.get(collection);
     if (!col) {
       return null;
@@ -129,6 +141,7 @@ export default class MongoDbStorage implements Storage {
         .find(filter ?? {})
         .toArray();
 
+      MongoDbStorage.cache.setQueryResult(query, jfilter ?? { all: true }, docs);
       return docs;
     } catch (error) {
       return null;

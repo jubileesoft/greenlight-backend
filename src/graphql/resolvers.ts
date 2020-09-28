@@ -82,19 +82,16 @@ const ensureIsAuthenticated = (context: ApolloServerContext): void => {
 const ensureIsAuthenticatedAndAuthorized = async (context: ApolloServerContext): Promise<UserRole[]> => {
   ensureIsAuthenticated(context);
 
-  //const adminEmails = process.env.ADMINS?.toLowerCase().split(',');
-
-  // if (adminEmails?.includes(context.user.email as string)) {
-  //   // GLOBAL ADMIN
-  //   return;
-  // }
+  // Make sure that at least all admin users are available
+  await context.dataSources.genericApi.createAdminUsers();
 
   const users: User[] | null = await context.dataSources.genericApi.getCollection(Collection.users);
   if (!users) {
+    // This should NOT happen. At least the global admin users should be available.
     throw new AuthenticationError('Unauthenticated.');
   }
 
-  const authorizedUser: User | undefined = users.find((x) => x.email === context.user.email?.toLocaleLowerCase());
+  const authorizedUser: User | undefined = users.find((x) => x.email === context.user.email?.toLowerCase());
 
   if (!authorizedUser) {
     throw new AuthenticationError('Unauthenticated.');
