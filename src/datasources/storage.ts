@@ -12,13 +12,16 @@ import {
   AddPrivilegePoolInput,
   UpdatePrivilegeInput,
   User,
+  Tenant,
+  AddTenantInput,
 } from '../graphql/types';
 
 export default interface Storage {
   getMe(email: string): Promise<User | null>;
   createAdminUsers(): Promise<void>;
+  addTenant(input: AddTenantInput): Promise<any>;
 
-  getDocuments(collection: Collection, filter?: JFilter): Promise<any[] | null>;
+  getDocuments(collection: Collection, filter?: JFilter): Promise<any[]>;
   deleteDocument(collection: Collection, id: string): Promise<boolean>;
   getDocument(collection: Collection, filter: any): Promise<any | null>;
   getPrivileges(appId?: string): Promise<any[] | null>;
@@ -42,7 +45,9 @@ export default interface Storage {
 
   mapUserDoc(doc: any): User;
   mapUserDocs(docs: any[]): User[];
-  mapDocs(collection: Collection, docs: any[]): any[] | null;
+  mapDocs(collection: Collection, docs: any[]): any[];
+  mapTenantDoc(doc: any): Tenant;
+  mapTenantDocs(docs: any[]): Tenant[];
   mapAppDoc(doc: any): App;
   mapAppDocs(docs: any[]): App[];
   mapAppUserDoc(doc: any): AppUser;

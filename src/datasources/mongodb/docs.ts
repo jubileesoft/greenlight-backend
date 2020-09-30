@@ -6,6 +6,12 @@ export interface UserDoc {
   roles: string[];
 }
 
+export interface TenantDoc {
+  _id: mongo.ObjectID;
+  name: string;
+  admins: string[];
+}
+
 export interface AppDoc {
   _id: mongo.ObjectID;
   owner: string;

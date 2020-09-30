@@ -5,6 +5,8 @@ import Storage from '../storage';
 
 import { MapUserDoc, MapUserDocs, GetMe, CreateAdminUsers } from './storage/user';
 
+import { MapTenantDoc, MapTenantDocs, AddTenant } from './storage/tenant';
+
 import {
   MapAppDoc,
   MapAppDocs,
@@ -49,6 +51,7 @@ collectionMap.set(Collection.tenants, 'tenants');
 
 export const Query = {
   GET_COLLECTION_USERS: Collection.users.toString(),
+  GET_COLLECTION_TENANTS: Collection.tenants.toString(),
 };
 
 export default class MongoDbStorage implements Storage {
@@ -60,6 +63,10 @@ export default class MongoDbStorage implements Storage {
   public mapUserDocs = MapUserDocs;
   public getMe = GetMe;
   public createAdminUsers = CreateAdminUsers;
+
+  public mapTenantDoc = MapTenantDoc;
+  public mapTenantDocs = MapTenantDocs;
+  public addTenant = AddTenant;
 
   mapAppDoc = MapAppDoc;
   mapAppDocs = MapAppDocs;
@@ -90,7 +97,7 @@ export default class MongoDbStorage implements Storage {
   getPrivilegesFromPrivilegePool = GetPrivilegesFromPrivilegePool;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public mapDocs(collection: Collection, docs: any[]): any[] | null {
+  public mapDocs(collection: Collection, docs: any[]): any[] {
     switch (collection) {
       case Collection.apps:
         return this.mapAppDocs(docs);
@@ -107,15 +114,18 @@ export default class MongoDbStorage implements Storage {
       case Collection.users:
         return this.mapUserDocs(docs);
 
+      case Collection.tenants:
+        return this.mapTenantDocs(docs);
+
       default:
-        return null;
+        throw new Error('Internal Server Error: No mapping defined for collection: ' + collection);
     }
   }
 
   // #region Helper
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public async getDocuments(collection: Collection, jfilter?: JFilter): Promise<any[] | null> {
+  public async getDocuments(collection: Collection, jfilter?: JFilter): Promise<any[]> {
     const query = collection.toString();
 
     const cachedData = MongoDbStorage.cache.getQueryResult(query, jfilter ?? { all: true });
@@ -123,31 +133,20 @@ export default class MongoDbStorage implements Storage {
       return cachedData;
     }
 
-    const col = collectionMap.get(collection);
-    if (!col) {
-      return null;
-    }
+    const client = await this.getClient();
+    const db = client.db(this.config.database);
 
-    let client: mongo.MongoClient | undefined;
-    try {
-      client = await this.getClient();
+    const filter = this.getFilterFromJFilter(jfilter);
 
-      const db = client.db(this.config.database);
+    const docs = await db
+      .collection(collection.toString())
+      .find(filter ?? {})
+      .toArray();
 
-      const filter = this.getFilterFromJFilter(jfilter);
+    client.close();
 
-      const docs = await db
-        .collection(col)
-        .find(filter ?? {})
-        .toArray();
-
-      MongoDbStorage.cache.setQueryResult(query, jfilter ?? { all: true }, docs);
-      return docs;
-    } catch (error) {
-      return null;
-    } finally {
-      client?.close();
-    }
+    MongoDbStorage.cache.setQueryResult(query, jfilter ?? { all: true }, docs);
+    return docs;
   }
 
   public async deleteDocument(collection: Collection, id: string): Promise<boolean> {

@@ -12,10 +12,12 @@ import {
   UserRoleType,
   UserRole,
   Tenant,
+  AddTenantInput,
 } from './types';
 import { User, App, AppUser, Privilege, PrivilegePool } from './types';
 import ISODate from './scalars/ISODate';
 import { JFilter } from 'src/index.dt';
+import { addTenant } from './resolvers/mutations/add-tenant';
 
 export interface ApolloServerContext {
   user: MicrosoftUser;
@@ -27,6 +29,7 @@ interface AmselResolvers extends IResolvers {
   //   getMe(notUsed1: unknown, notUsed2: unknown, context: ApolloServerContext): Promise<User | null>;
   // };
   Mutation: {
+    addTenant(notUsed: unknown, args: { input: AddTenantInput }, context: ApolloServerContext): Promise<Tenant>;
     addApp(notUsed: unknown, args: { input: AddAppInput }, context: ApolloServerContext): Promise<App | null>;
     createAppApiKey1(notUsed: unknown, args: { appId: string }, context: ApolloServerContext): Promise<string | null>;
     addAppUser(
@@ -108,7 +111,8 @@ const resolvers: AmselResolvers = {
       const me: User | null = await context.dataSources.genericApi.getMe(context.user.email as string);
       return me;
     },
-    getTenants: async (_, __, context: ApolloServerContext): Promise<Tenant[] | null> => {
+
+    getTenants: async (_, __, context: ApolloServerContext): Promise<Tenant[]> => {
       const roles: UserRole[] = await ensureIsAuthenticatedAndAuthorized(context);
 
       let jfilter: JFilter | undefined;
@@ -126,13 +130,34 @@ const resolvers: AmselResolvers = {
           };
         } else {
           // An APP_ADMIN is not allowed to load tenants here
-          return null;
+          throw new Error('WHY?????');
         }
       }
 
-      const tenants: Tenant[] | null = await context.dataSources.genericApi.getCollection(Collection.tenants, jfilter);
+      const tenants: Tenant[] = await context.dataSources.genericApi.getCollection(Collection.tenants, jfilter);
       return tenants;
     },
+
+    isTenantNameTaken: async (_, args: { name: string }, context: ApolloServerContext): Promise<boolean> => {
+      if (args.name.trim().length === 0) {
+        return true; // an empty tenant name is not allowed
+      }
+
+      const tenants: Tenant[] | null = await context.dataSources.genericApi.getCollection(Collection.tenants);
+      if (!tenants) {
+        return false;
+      }
+
+      if (
+        tenants.find((tenant) => {
+          return tenant.name.toLowerCase() === args.name.toLowerCase().trim();
+        })
+      ) {
+        return true;
+      }
+      return false;
+    },
+
     getApps: async (_, ___, context: ApolloServerContext): Promise<App[] | null> => {
       ensureIsAuthenticated(context);
       const apps: App[] | null = await context.dataSources.genericApi.getCollection(Collection.apps);
@@ -220,6 +245,8 @@ const resolvers: AmselResolvers = {
     },
   },
   Mutation: {
+    addTenant,
+
     addApp: async (_, args: { input: AddAppInput }, context: ApolloServerContext): Promise<App | null> => {
       return context.dataSources.genericApi.addApp(args.input);
     },

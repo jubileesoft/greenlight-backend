@@ -15,10 +15,11 @@ import {
   User,
 } from '../graphql/types';
 import { JFilter } from 'src/index.dt';
+import { AddTenant } from './generic-api/add-tenant';
 
 export default class GenericApi extends DataSource {
   public context!: { user: MicrosoftUser };
-  private storage: Storage;
+  public storage: Storage;
 
   constructor(storage: Storage) {
     super();
@@ -45,11 +46,9 @@ export default class GenericApi extends DataSource {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public async getCollection(collection: Collection, jfilter?: JFilter): Promise<any[] | null> {
+  public async getCollection(collection: Collection, jfilter?: JFilter): Promise<any[]> {
     const docs = await this.storage.getDocuments(collection, jfilter);
-    if (!docs) {
-      return null;
-    }
+
     return this.storage.mapDocs(collection, docs);
   }
 
@@ -113,6 +112,8 @@ export default class GenericApi extends DataSource {
     }
     return this.storage.mapDocs(Collection.privileges, docs);
   }
+
+  public addTenant = AddTenant;
 
   public async addAppUser(appId: string, input: AddAppUserInput): Promise<AppUser | null> {
     const doc = await this.storage.addAppUser(appId, input);

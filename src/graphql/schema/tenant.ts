@@ -7,8 +7,18 @@ const typeDefs = gql`
     name: String!
   }
 
+  input AddTenantInput {
+    name: String!
+    adminEMails: String!
+  }
+
   extend type Query {
-    getTenants: [Tenant]
+    getTenants: [Tenant]!
+    isTenantNameTaken(name: String!): Boolean!
+  }
+
+  extend type Mutation {
+    addTenant(input: AddTenantInput!): Tenant
   }
 `;
 

@@ -27,6 +27,12 @@ export interface User {
 export interface Tenant {
   id: string;
   name: string;
+  admins: string[];
+}
+
+export interface AddTenantInput {
+  name: string;
+  adminEmails: string;
 }
 
 export interface AppUser {
