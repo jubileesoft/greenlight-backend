@@ -4,6 +4,8 @@ export interface UserDoc {
   _id: mongo.ObjectID;
   email: string;
   roles: string[];
+  tenantIds?: string[];
+  appIds?: string[];
 }
 
 export interface TenantDoc {

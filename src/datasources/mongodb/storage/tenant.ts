@@ -1,7 +1,7 @@
 import { existedOperationTypeMessage } from 'graphql/validation/rules/UniqueOperationTypes';
 import mongo from 'mongodb';
-import { AddTenantInput, Collection, Tenant } from '../../../graphql/types';
-import { TenantDoc } from '../docs';
+import { AddTenantInput, Collection, Tenant, UserRoleType } from '../../../graphql/types';
+import { TenantDoc, UserDoc } from '../docs';
 import MongoDbStorage, { Query as StorageQuery } from '../storage';
 
 // #region Mapping Functions
@@ -62,6 +62,10 @@ export async function AddTenant(this: MongoDbStorage, input: AddTenantInput): Pr
     throw new Error('Cannot add tenant. Admin emails are invalid. ' + JSON.stringify(input));
   }
 
+  if (adminEmails.length === 0) {
+    throw new Error('Cannot add tenant. No admin emails defined.' + JSON.stringify(input));
+  }
+
   const tenants: TenantDoc[] = await this.getDocuments(Collection.tenants);
 
   if (
@@ -75,9 +79,56 @@ export async function AddTenant(this: MongoDbStorage, input: AddTenantInput): Pr
   const client = await this.getClient();
   const db = client.db(this.config.database);
 
-  // TODO Create TENANT
+  // Create TENANT AND admin USERS
+
+  const newTenantDoc: TenantDoc = {
+    _id: new mongo.ObjectID(),
+    name: input.name.trim(),
+    admins: adminEmails,
+  };
+  await db.collection(Collection.tenants).insertOne(newTenantDoc);
+
+  const users: UserDoc[] = await this.getDocuments(Collection.users);
+
+  for (const adminEmail of adminEmails) {
+    let userDoc: UserDoc | undefined = users.find((user) => user.email === adminEmail.trim().toLowerCase());
+    if (userDoc) {
+      // The user already exists in the database.
+      // Just add the created tenant for his tenantAdmin role.
+
+      const roles: string[] = userDoc.roles;
+      if (!roles.includes(UserRoleType.TENANT_ADMIN.toString())) {
+        roles.push(UserRoleType.TENANT_ADMIN.toString());
+      }
+
+      const tenantIds: string[] = userDoc.tenantIds ?? [];
+      tenantIds.push(newTenantDoc._id.toString());
+
+      const updateDocument = {
+        roles,
+        tenantIds,
+      };
+
+      const updateQuery = { $set: updateDocument };
+      const filter = { _id: userDoc._id };
+
+      await db.collection(Collection.users).updateOne(filter, updateQuery);
+    } else {
+      // The user does not exist in the database. Create him.
+      userDoc = {
+        _id: new mongo.ObjectID(),
+        email: adminEmail,
+        roles: [UserRoleType.TENANT_ADMIN.toString()],
+        tenantIds: [newTenantDoc._id.toString()],
+      };
+
+      await db.collection(Collection.users).insertOne(userDoc);
+    }
+  }
 
   client.close();
+
+  return newTenantDoc;
 }
 
 // #endregion AddTenant
