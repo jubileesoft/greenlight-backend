@@ -1,8 +1,7 @@
-import { existedOperationTypeMessage } from 'graphql/validation/rules/UniqueOperationTypes';
 import mongo from 'mongodb';
 import { AddTenantInput, Collection, Tenant, UserRoleType } from '../../../graphql/types';
 import { TenantDoc, UserDoc } from '../docs';
-import MongoDbStorage, { Query as StorageQuery } from '../storage';
+import MongoDbStorage from '../storage';
 
 // #region Mapping Functions
 
@@ -90,6 +89,7 @@ export async function AddTenant(this: MongoDbStorage, input: AddTenantInput): Pr
 
   const users: UserDoc[] = await this.getDocuments(Collection.users);
 
+  let newUserAdded = false;
   for (const adminEmail of adminEmails) {
     let userDoc: UserDoc | undefined = users.find((user) => user.email === adminEmail.trim().toLowerCase());
     if (userDoc) {
@@ -123,10 +123,16 @@ export async function AddTenant(this: MongoDbStorage, input: AddTenantInput): Pr
       };
 
       await db.collection(Collection.users).insertOne(userDoc);
+      newUserAdded = true;
     }
   }
 
   client.close();
+
+  MongoDbStorage.cache.purgeQueryResult(Collection.tenants.toString());
+  if (newUserAdded) {
+    MongoDbStorage.cache.purgeQueryResult(Collection.users);
+  }
 
   return newTenantDoc;
 }

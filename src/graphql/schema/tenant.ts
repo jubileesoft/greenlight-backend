@@ -5,11 +5,12 @@ const typeDefs = gql`
   type Tenant {
     id: ID!
     name: String!
+    admins: [String!]!
   }
 
   input AddTenantInput {
     name: String!
-    adminEMails: String!
+    adminEmails: String!
   }
 
   extend type Query {
